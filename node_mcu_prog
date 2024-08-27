@@ -1,0 +1,95 @@
+#include <ESP8266WiFi.h>
+const int short StatusLEDPin=13;
+const int short ControllingPin=4;
+WiFiServer server (80);
+//Initialize the server on Port 80
+String inputString = "";
+// a string to hold incoming data
+String inputString_backup = "";
+// a string to hold incoming data
+boolean stringComplete = false;
+// whether the string is complete
+boolean Purifier_Cut_Flag=0;
+
+void setup()
+{
+// put your setup code here, to run once:
+pinMode (StatusLEDPin, OUTPUT);
+pinMode (Controlling Pin, OUTPUT);
+digitalWrite (StatusLEDPin, LOW);
+digitalWrite (ControllingPin, LOW);
+
+WiFi.mode (WIFI_AP);
+//Our ESP8266-12E is an AccessPoint
+WiFi.softAP("Air_Purifier", "12345678");
+// Provide the (SSID, password);
+
+server.begin();
+// Start the HTTP Server
+
+//Looking under the hood
+Serial.begin(9600);
+//Start communication between the ESP8266-12E and the monitor window
+IPAddress HTTPS_Server IP= WiFi.softAPIP();
+// Obtain the IP of the Server
+Serial.print("Server IP is: ");
+// Print the IP to the monitor window
+Serial.println(HTTPS_ServerIP);
+digitalWrite(ControllingPin, HIGH);
+}
+void StatusLEDBlink (int Led Delay)
+{
+digitalWrite (StatusLEDPin, HIGH);
+delay (LedDelay);
+digitalWrite (StatusLEDPin, LOW);
+delay (LedDelay);
+}
+void serialEvent()
+{
+while (Serial. available())
+ {
+  // get the new byte:
+  char inChar = (char)Serial.read();
+  // add it to the inputString:
+  inputString += inChar;
+  // if the incoming character is a newline, set a flag
+  // so the main loop can do something about it:
+  if (inChar == '\n')
+  {
+   stringComplete = true;
+   }
+ }
+}
+void loop() {
+serialEvent();
+if (stringComplete)
+{
+inputString_backup=inputString;
+inputString = "";
+stringComplete = false;
+}
+// put your main code here, to run repeatedly:
+StatusLEDBlink (250);
+WiFiClient client = server.available();
+if (!client) {
+return;
+}
+client.print(inputString_backup );
+//Looking under the hood
+Serial.println("Somebody has connected :)");
+StatusLEDBlink (1000);
+//Read what the browser has sent into a String class and print the request to the monitor
+String request = client.readStringUntil('\r');
+//Looking under the hood
+Serial.println(request);
+if (request.indexOf("/ON") != -1)
+{
+Serial.println("On Command Rxd");
+digitalWrite(ControllingPin, HIGH);
+}
+else if (request.indexOf("/OFF") != -1)
+{
+Serial.println("Off Command Rxd");
+digitalWrite(Controlling Pin, LOW);
+}
+}
